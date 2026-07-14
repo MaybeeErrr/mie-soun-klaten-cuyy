@@ -1,0 +1,48 @@
+const { sql } = require('@vercel/postgres');
+
+module.exports = async function handler(req, res) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') return res.status(200).end();
+
+    try {
+        if (req.method === 'POST' || req.method === 'PUT') {
+            // Tambahan shopee_link di sini
+            const { id, name, price, old_price, description, gambar_url, badge, shopee_link } = req.body;
+            
+            const numericPrice = (price === "" || isNaN(parseInt(price))) ? null : parseInt(price);
+            const numericOldPrice = (old_price === "" || isNaN(parseInt(old_price))) ? null : parseInt(old_price);
+
+            if (req.method === 'POST') {
+                const result = await sql`
+                    INSERT INTO products (name, price, old_price, description, gambar_url, badge, shopee_link) 
+                    VALUES (${name}, ${numericPrice}, ${numericOldPrice}, ${description || ''}, ${gambar_url || 'FOTO PRODUK/foto.jpg'}, ${badge || ''}, ${shopee_link || ''})
+                    RETURNING *
+                `;
+                return res.status(201).json({ success: true, data: result.rows[0] });
+            } else {
+                await sql`
+                    UPDATE products 
+                    SET name = ${name}, price = ${numericPrice}, old_price = ${numericOldPrice}, description = ${description}, gambar_url = ${gambar_url}, badge = ${badge}, shopee_link = ${shopee_link}
+                    WHERE id = ${id}
+                `;
+                return res.status(200).json({ success: true, message: 'Produk berhasil diupdate' });
+            }
+        }
+        
+        if (req.method === 'GET') {
+            const result = await sql`SELECT * FROM products ORDER BY id ASC`;
+            return res.status(200).json({ success: true, data: result.rows });
+        }
+        
+        if (req.method === 'DELETE') {
+            const { id } = req.query;
+            await sql`DELETE FROM products WHERE id = ${id}`;
+            return res.status(200).json({ success: true });
+        }
+    } catch (error) {
+        return res.status(500).json({ success: false, error: error.message });
+    }
+};
