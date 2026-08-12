@@ -7,6 +7,8 @@ if (localStorage.getItem('admin_token') !== 'miesecret2026') {
 
 function logoutAdmin() {
     localStorage.removeItem('admin_token');
+    localStorage.removeItem('user'); // Hapus data profil user
+    localStorage.removeItem('admin_active_tab'); // Hapus ingatan tab terakhir
     window.location.href = '/admin/login.html';
 }
 
@@ -26,19 +28,33 @@ function activateTab(tab) {
 
     // Tampilkan panel yang sesuai
     document.querySelectorAll('.panel').forEach(p => p.style.display = 'none');
-    document.getElementById('panel-' + tab).style.display = 'block';
+    
+    // Pastikan elemen panel ada sebelum mengubah style-nya
+    const activePanel = document.getElementById('panel-' + tab);
+    if(activePanel) activePanel.style.display = 'block';
 
     // Update judul
     const titles = {
         products: 'Manajemen Produk',
         testimonials: 'Manajemen Testimoni',
         gallery: 'Manajemen Galeri',
-        users: 'Manajemen User'
+        content: 'Edit Konten Halaman Utama',
+        users: 'Manajemen User',
+        analytics: 'Analitik & Laporan' // <-- Tambahan untuk tab analitik
     };
     document.getElementById('pageTitle').textContent = titles[tab] || 'Dashboard';
 
-    // Sembunyikan tombol tambah di tab users
-    document.getElementById('btnAdd').style.display = tab === 'users' ? 'none' : 'inline-flex';
+    // Sembunyikan tombol tambah di tab users, content, DAN analytics
+    document.getElementById('btnAdd').style.display = (tab === 'users' || tab === 'content' || tab === 'analytics') ? 'none' : 'inline-flex';
+
+    // Jika tab tertentu dibuka, pastikan datanya dimuat
+    if (tab === 'content') {
+        loadContentToAdmin();
+    } else if (tab === 'users') {
+        loadUsers(); 
+    } else if (tab === 'analytics') {
+        loadAnalyticsDashboard(); // <-- Pastikan angka 3 kotak refresh saat tab analitik dibuka
+    }
 
     // Simpan ke localStorage agar tab tetap aktif setelah refresh
     localStorage.setItem('admin_active_tab', tab);
@@ -91,14 +107,8 @@ function renderGallery() {
     ).join('');
 }
 
-function renderUsers() {
-    const tbody = document.getElementById('usersBody');
-    if (!tbody) return;
-    users = [{ id: 1, name: 'Admin', email: 'admin@miesoun.shop', role: 'Administrator' }];
-    tbody.innerHTML = users.map(u => `<tr><td>${u.id}</td><td>${u.name}</td><td>${u.email}</td><td>${u.role}</td><td class="actions">-</td></tr>`).join('');
-}
 
-function renderAll() { renderProducts(); renderTestimonials(); renderGallery(); renderUsers(); }
+function renderAll() { renderProducts(); renderTestimonials(); renderGallery(); }
 
 // ============================================================
 // CRUD (DELETE, EDIT, OPEN MODAL, SAVE)
@@ -279,6 +289,188 @@ async function fetchAllDataToAdmin() {
 }
 
 // ============================================================
+// KONTEN WEB (LANDING PAGE CMS)
+// ============================================================
+async function loadContentToAdmin() {
+    try {
+        const response = await fetch('/api/content');
+        const json = await response.json();
+        if (json.success && json.data) {
+            const d = json.data;
+            // Gunakan fungsi bantu agar tidak error jika field kosong di DB
+            const setVal = (id, val) => { if(document.getElementById(id)) document.getElementById(id).value = val || ''; }
+            
+            setVal('c_hero_title', d.hero_title);
+            setVal('c_hero_subtitle', d.hero_subtitle);
+            setVal('c_about_text', d.about_text);
+            document.getElementById('c_img_preview').src = d.hero_image || '';
+            document.getElementById('c_hero_image').value = d.hero_image || '';
+
+            setVal('c_feat1_title', d.feat1_title); setVal('c_feat1_desc', d.feat1_desc);
+            setVal('c_feat2_title', d.feat2_title); setVal('c_feat2_desc', d.feat2_desc);
+            setVal('c_feat3_title', d.feat3_title); setVal('c_feat3_desc', d.feat3_desc);
+
+            setVal('c_stat1_num', d.stat1_num); setVal('c_stat1_label', d.stat1_label);
+            setVal('c_stat2_num', d.stat2_num); setVal('c_stat2_label', d.stat2_label);
+            setVal('c_stat3_num', d.stat3_num); setVal('c_stat3_label', d.stat3_label);
+            setVal('c_stat4_num', d.stat4_num); setVal('c_stat4_label', d.stat4_label);
+
+            setVal('c_cta_desc', d.cta_desc);
+            setVal('c_footer_address', d.footer_address);
+            setVal('c_footer_copy', d.footer_copy);
+            
+            setVal('c_sec_about_t', d.section_about_title); setVal('c_sec_about_s', d.section_about_sub);
+            setVal('c_sec_feat_t', d.section_feat_title); setVal('c_sec_feat_s', d.section_feat_sub);
+            setVal('c_sec_gal_t', d.section_gallery_title); setVal('c_sec_gal_s', d.section_gallery_sub);
+            setVal('c_sec_prod_t', d.section_prod_title); setVal('c_sec_prod_s', d.section_prod_sub);
+            setVal('c_sec_testi_t', d.section_testi_title); setVal('c_sec_testi_s', d.section_testi_sub);
+            
+            setVal('c_trust1', d.trust1_text); setVal('c_trust2', d.trust2_text); setVal('c_trust3', d.trust3_text);
+            setVal('c_trust4', d.trust4_text); setVal('c_trust5', d.trust5_text);
+
+            setVal('c_hb1_i', d.hero_badge1_icon); setVal('c_hb1_t', d.hero_badge1_text);
+            setVal('c_hb2_i', d.hero_badge2_icon); setVal('c_hb2_t', d.hero_badge2_text);
+            setVal('c_hb3_i', d.hero_badge3_icon); setVal('c_hb3_t', d.hero_badge3_text);
+
+            setVal('c_tr1_i', d.trust1_icon); setVal('c_tr2_i', d.trust2_icon); setVal('c_tr3_i', d.trust3_icon);
+            setVal('c_tr4_i', d.trust4_icon); setVal('c_tr5_i', d.trust5_icon);
+        }
+    } catch (err) { console.error(err); }
+}
+
+function previewHeroImage(input) {
+    const file = input.files[0];
+    if (!file || !file.type.match(/image.*/)) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const MAX_WIDTH = 1200; // Ukuran lebih besar untuk gambar hero
+            let width = img.width; let height = img.height;
+            if (width > MAX_WIDTH) { height = Math.round((height * MAX_WIDTH) / width); width = MAX_WIDTH; }
+            const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+            canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+            const compressed = canvas.toDataURL('image/jpeg', 0.8);
+            document.getElementById('c_img_preview').src = compressed;
+            document.getElementById('c_hero_image').value = compressed;
+        };
+        img.src = e.target.result;
+    }
+    reader.readAsDataURL(file);
+}
+
+async function saveContent() {
+    // Kumpulkan semua data dari form
+    const payload = {
+        hero_title: document.getElementById('c_hero_title').value,
+        hero_subtitle: document.getElementById('c_hero_subtitle').value,
+        about_text: document.getElementById('c_about_text').value,
+        hero_image: document.getElementById('c_hero_image').value,
+        
+        feat1_title: document.getElementById('c_feat1_title').value,
+        feat1_desc: document.getElementById('c_feat1_desc').value,
+        feat2_title: document.getElementById('c_feat2_title').value,
+        feat2_desc: document.getElementById('c_feat2_desc').value,
+        feat3_title: document.getElementById('c_feat3_title').value,
+        feat3_desc: document.getElementById('c_feat3_desc').value,
+        
+        stat1_num: document.getElementById('c_stat1_num').value,
+        stat1_label: document.getElementById('c_stat1_label').value,
+        stat2_num: document.getElementById('c_stat2_num').value,
+        stat2_label: document.getElementById('c_stat2_label').value,
+        stat3_num: document.getElementById('c_stat3_num').value,
+        stat3_label: document.getElementById('c_stat3_label').value,
+        stat4_num: document.getElementById('c_stat4_num').value,
+        stat4_label: document.getElementById('c_stat4_label').value,
+        
+        cta_desc: document.getElementById('c_cta_desc').value,
+        footer_address: document.getElementById('c_footer_address').value,
+        footer_copy: document.getElementById('c_footer_copy').value,
+
+        section_about_title: document.getElementById('c_sec_about_t').value,
+        section_about_sub: document.getElementById('c_sec_about_s').value,
+        section_feat_title: document.getElementById('c_sec_feat_t').value,
+        section_feat_sub: document.getElementById('c_sec_feat_s').value,
+        section_gallery_title: document.getElementById('c_sec_gal_t').value,
+        section_gallery_sub: document.getElementById('c_sec_gal_s').value,
+        section_prod_title: document.getElementById('c_sec_prod_t').value,
+        section_prod_sub: document.getElementById('c_sec_prod_s').value,
+        section_testi_title: document.getElementById('c_sec_testi_t').value,
+        section_testi_sub: document.getElementById('c_sec_testi_s').value,
+        
+        trust1_text: document.getElementById('c_trust1').value,
+        trust2_text: document.getElementById('c_trust2').value,
+        trust3_text: document.getElementById('c_trust3').value,
+        trust4_text: document.getElementById('c_trust4').value,
+        trust5_text: document.getElementById('c_trust5').value,
+
+        hero_badge1_icon: document.getElementById('c_hb1_i').value,
+        hero_badge1_text: document.getElementById('c_hb1_t').value,
+        hero_badge2_icon: document.getElementById('c_hb2_i').value,
+        hero_badge2_text: document.getElementById('c_hb2_t').value,
+        hero_badge3_icon: document.getElementById('c_hb3_i').value,
+        hero_badge3_text: document.getElementById('c_hb3_t').value,
+
+        trust1_icon: document.getElementById('c_tr1_i').value,
+        trust2_icon: document.getElementById('c_tr2_i').value,
+        trust3_icon: document.getElementById('c_tr3_i').value,
+        trust4_icon: document.getElementById('c_tr4_i').value,
+        trust5_icon: document.getElementById('c_tr5_i').value,
+    };
+
+    try {
+        const response = await fetch('/api/content', { 
+            method: 'PUT', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify(payload) 
+        });
+        if (response.ok) alert('Seluruh Konten Halaman Berhasil Diperbarui!');
+    } catch (err) { console.error(err); }
+}
+// ============================================================
+// FUNGSI UPDATE PROFIL SIDEBAR
+// ============================================================
+function updateSidebarProfile() {
+    // Default nilai jika tidak ada data
+    let userName = 'Admin';
+    let userRole = 'Administrator';
+
+    // Ambil data JSON dari localStorage
+    const userStr = localStorage.getItem('user');
+    
+    if (userStr) {
+        try {
+            // Ubah string JSON kembali menjadi objek JavaScript
+            const userData = JSON.parse(userStr);
+            if (userData.name) userName = userData.name;
+            if (userData.role) userRole = userData.role;
+        } catch (e) {
+            console.error("Gagal membaca data user:", e);
+        }
+    }
+
+    // Ambil elemen HTML
+    const nameEl = document.querySelector('.user .name');
+    const roleEl = document.querySelector('.user .role');
+    const avatarEl = document.querySelector('.user .avatar');
+
+    // Terapkan data ke HTML
+    if (nameEl) nameEl.textContent = userName;
+    if (roleEl) {
+        roleEl.textContent = userRole;
+        roleEl.style.textTransform = 'capitalize'; // Membuat huruf awalnya kapital (cth: admin -> Admin)
+    }
+    
+    // Terapkan huruf inisial ke lingkaran (Avatar)
+    if (avatarEl) {
+        avatarEl.textContent = userName.charAt(0).toUpperCase();
+        // Memastikan warna latar belakang avatar sesuai dengan tema (oranye)
+        avatarEl.style.backgroundColor = '#FF7043'; 
+        avatarEl.style.color = '#fff';
+    }
+}
+
+// ============================================================
 // INIT — BACA TAB TERAKHIR DARI localStorage
 // ============================================================
 (async function init() {
@@ -288,6 +480,184 @@ async function fetchAllDataToAdmin() {
     activateTab(savedTab);
     // Ambil data dari API
     await fetchAllDataToAdmin();
-    // Pastikan tombol tambah sesuai dengan tab
-    document.getElementById('btnAdd').style.display = savedTab === 'users' ? 'none' : 'inline-flex';
+    // Pastikan tombol tambah sesuai dengan tab (sudah dihandle di activateTab, tapi kita pastikan lagi saat load awal)
+    document.getElementById('btnAdd').style.display = (savedTab === 'users' || savedTab === 'content') ? 'none' : 'inline-flex';
+
+    // Update profil sidebar
+    updateSidebarProfile();
 })();
+//
+// --- 1. FUNGSI UNTUK MEMUAT DATA DAN TOMBOL AKSI ---
+async function loadUsers() {
+    const tbody = document.getElementById('usersBody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">Memuat data...</td></tr>';
+
+    try {
+        const response = await fetch('/api/users');
+        const result = await response.json();
+
+        if (result.success) {
+            tbody.innerHTML = '';
+            result.data.forEach(user => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">${user.id}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #eee;">${user.name}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #eee;">${user.email}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #eee; text-transform: capitalize;">${user.role}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">
+                        <!-- Tombol Edit -->
+                        <button onclick="editUser('${user.id}', '${user.name}', '${user.email}', '${user.role}')" style="background: #FF7043; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px;" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <!-- Tombol Hapus -->
+                        <button onclick="deleteUser('${user.id}')" style="background: #dc3545; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;" title="Hapus">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } else {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:red;">Gagal memuat data</td></tr>`;
+        }
+    } catch (error) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">Terjadi kesalahan jaringan</td></tr>';
+    }
+}
+
+// --- 2. FUNGSI UNTUK MEMBUKA MODAL TAMBAH USER ---
+function openAddUser() {
+    document.getElementById('modalTitle').textContent = 'Tambah User Baru';
+    document.getElementById('modalBody').innerHTML = generateFormHtml('', '', '', 'admin', true);
+    document.getElementById('saveBtn').onclick = () => saveUser('POST'); // Gunakan metode POST untuk tambah
+    document.getElementById('modal').style.display = 'flex';
+}
+
+// --- 3. FUNGSI UNTUK MEMBUKA MODAL EDIT USER ---
+function editUser(id, name, email, role) {
+    document.getElementById('modalTitle').textContent = 'Edit User';
+    document.getElementById('modalBody').innerHTML = generateFormHtml(id, name, email, role, false);
+    document.getElementById('saveBtn').onclick = () => saveUser('PUT'); // Gunakan metode PUT untuk edit
+    document.getElementById('modal').style.display = 'flex';
+}
+
+// Helper untuk menghasilkan HTML Form (Mencegah kode berulang)
+function generateFormHtml(id, name, email, role, isAdd) {
+    const passwordLabel = isAdd ? 'Password' : 'Password Baru (Kosongkan jika tidak diubah)';
+    const passwordRequired = isAdd ? 'required' : '';
+    
+    return `
+        <input type="hidden" id="formUserId" value="${id}">
+        <label style="display:block; margin-bottom:5px; font-weight:bold;">Nama Lengkap</label>
+        <input type="text" id="formUserName" value="${name}" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ccc; border-radius:6px;">
+        
+        <label style="display:block; margin-bottom:5px; font-weight:bold;">Email</label>
+        <input type="email" id="formUserEmail" value="${email}" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ccc; border-radius:6px;">
+        
+        <label style="display:block; margin-bottom:5px; font-weight:bold;">Role</label>
+        <select id="formUserRole" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ccc; border-radius:6px;">
+            <option value="administrator" ${role === 'administrator' ? 'selected' : ''}>Administrator</option>
+            <option value="admin" ${role === 'admin' ? 'selected' : ''}>Admin Biasa</option>
+        </select>
+
+        <label style="display:block; margin-bottom:5px; font-weight:bold;">${passwordLabel}</label>
+        <input type="password" id="formUserPassword" placeholder="Ketik password..." ${passwordRequired} style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ccc; border-radius:6px;">
+    `;
+}
+
+// --- 4. FUNGSI MENYIMPAN (TAMBAH / EDIT) KE DATABASE ---
+async function saveUser(methodType) {
+    const id = document.getElementById('formUserId').value;
+    const name = document.getElementById('formUserName').value;
+    const email = document.getElementById('formUserEmail').value;
+    const role = document.getElementById('formUserRole').value;
+    const password = document.getElementById('formUserPassword').value;
+
+    if (methodType === 'POST' && !password) {
+        alert("Password wajib diisi untuk user baru!");
+        return;
+    }
+
+    const btn = document.getElementById('saveBtn');
+    btn.innerHTML = 'Menyimpan...'; btn.disabled = true;
+
+    try {
+        const response = await fetch('/api/users', {
+            method: methodType, // Bisa 'POST' (Tambah) atau 'PUT' (Edit)
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, name, email, role, password })
+        });
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            closeModal();
+            loadUsers(); // Refresh tabel
+        } else {
+            alert('Gagal: ' + (result.error || 'Terjadi kesalahan'));
+        }
+    } catch (error) {
+        alert('Kesalahan sistem jaringan.');
+    } finally {
+        btn.innerHTML = 'Simpan'; btn.disabled = false;
+    }
+}
+
+// --- 5. FUNGSI MENGHAPUS USER ---
+async function deleteUser(id) {
+    if (!confirm('Apakah Anda yakin ingin menghapus user ini?')) return;
+
+    try {
+        const response = await fetch('/api/users', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+        });
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            loadUsers(); // Refresh tabel setelah dihapus
+        } else {
+            alert('Gagal menghapus user: ' + result.error);
+        }
+    } catch (error) {
+        alert('Terjadi kesalahan saat menghapus data.');
+    }
+}
+
+// Pastikan fungsi closeModal tetap ada
+function closeModal() {
+    const modal = document.getElementById('modal');
+    if (modal) modal.style.display = 'none';
+}
+
+// (Opsional) Fitur tambahan: Tutup modal otomatis jika user mengklik area gelap di luarnya
+window.onclick = function(event) {
+    const modal = document.getElementById('modal');
+    if (event.target === modal) {
+        closeModal();
+    }
+}
+// Fungsi untuk memuat data statistik dari database
+async function loadAnalyticsDashboard() {
+    try {
+        const response = await fetch('/api/analytics');
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            // Animasi angka atau langsung masukkan teks
+            document.getElementById('countUsers').innerText = result.data.users;
+            document.getElementById('countProducts').innerText = result.data.products;
+            document.getElementById('countTestimonials').innerText = result.data.testimonials;
+        }
+    } catch (error) {
+        console.error("Gagal mengambil data analitik:", error);
+    }
+}
+
+// Jalankan fungsi ini saat dashboard pertama kali dimuat
+document.addEventListener('DOMContentLoaded', () => {
+    loadAnalyticsDashboard();
+});

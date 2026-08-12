@@ -181,8 +181,96 @@ async function loadGalleryFromDB() {
 }
 
 // 4. Jalankan Ketiga fungsi SETELAH seluruh halaman (DOM) selesai dimuat
+async function loadContentFromDB() {
+    try {
+        const response = await fetch('/api/content');
+        const json = await response.json();
+        if (json.success && json.data) {
+            const data = json.data;
+            
+            // Mengubah teks (pastikan ID-nya cocok dengan di index.html kamu)
+            if(document.getElementById('lp_hero_title')) document.getElementById('lp_hero_title').innerText = data.hero_title;
+            if(document.getElementById('lp_hero_subtitle')) document.getElementById('lp_hero_subtitle').innerText = data.hero_subtitle;
+            if(document.getElementById('lp_about_text')) document.getElementById('lp_about_text').innerText = data.about_text;
+            
+            // Mengubah gambar latar Hero (Contoh jika hero pakai background-image di CSS)
+            const heroSection = document.querySelector('.hero-section'); // Sesuaikan class section-nya
+            if(document.getElementById('lp_hero_image') && data.hero_image) {
+    document.getElementById('lp_hero_image').src = data.hero_image;
+}
+        }
+    } catch (error) {
+        console.error("Gagal mengambil konten utama:", error);
+    }
+}
+async function renderWebContent() {
+    try {
+        const response = await fetch('/api/content');
+        const json = await response.json();
+        if (json.success && json.data) {
+            const d = json.data;
+            
+            // Fungsi pintar agar web tidak rusak jika ada elemen ID yang belum terpasang
+            const inject = (id, val) => { 
+                const el = document.getElementById(id); 
+                if(el && val) el.innerHTML = val; // pakai innerHTML agar <br> terbaca
+            };
+
+            inject('lp_hero_title', d.hero_title);
+            inject('lp_hero_subtitle', d.hero_subtitle);
+            inject('lp_about_text', d.about_text);
+            
+            const heroImg = document.getElementById('lp_hero_image');
+            if(heroImg && d.hero_image) heroImg.src = d.hero_image;
+
+            inject('lp_feat1_title', d.feat1_title); inject('lp_feat1_desc', d.feat1_desc);
+            inject('lp_feat2_title', d.feat2_title); inject('lp_feat2_desc', d.feat2_desc);
+            inject('lp_feat3_title', d.feat3_title); inject('lp_feat3_desc', d.feat3_desc);
+
+            inject('lp_stat1_num', d.stat1_num); inject('lp_stat1_label', '<i class="fas fa-users" style="margin-right:4px;"></i> ' + d.stat1_label);
+            inject('lp_stat2_num', d.stat2_num); inject('lp_stat2_label', '<i class="fas fa-calendar-alt" style="margin-right:4px;"></i> ' + d.stat2_label);
+            inject('lp_stat3_num', d.stat3_num); inject('lp_stat3_label', '<i class="fas fa-map-marker-alt" style="margin-right:4px;"></i> ' + d.stat3_label);
+            inject('lp_stat4_num', '<i class="fas fa-star" style="color:#FFD166;font-size:1.8rem;"></i> ' + d.stat4_num); 
+            inject('lp_stat4_label', '<i class="fas fa-star" style="color:#FFD166;"></i> ' + d.stat4_label);
+            
+            inject('lp_sec_about_t', d.section_about_title); inject('lp_sec_about_s', d.section_about_sub);
+            inject('lp_sec_feat_t', d.section_feat_title); inject('lp_sec_feat_s', d.section_feat_sub);
+            inject('lp_sec_gal_t', '<i class="fas fa-images" style="color:#FF6B35;"></i> ' + d.section_gallery_title); inject('lp_sec_gal_s', d.section_gallery_sub);
+            inject('lp_sec_prod_t', d.section_prod_title); inject('lp_sec_prod_s', d.section_prod_sub);
+            inject('lp_sec_testi_t', '<i class="fas fa-star" style="color:#FFD166;"></i> ' + d.section_testi_title); inject('lp_sec_testi_s', d.section_testi_sub);
+            
+            inject('lp_trust1', d.trust1_text); inject('lp_trust2', d.trust2_text); inject('lp_trust3', d.trust3_text);
+            inject('lp_trust4', d.trust4_text); inject('lp_trust5', d.trust5_text);
+
+            inject('lp_cta_desc', d.cta_desc);
+            inject('lp_footer_address', '<i class="fas fa-map-marker-alt"></i> ' + d.footer_address);
+            inject('lp_footer_copy', '© ' + new Date().getFullYear() + ' ' + d.footer_copy);
+
+            // Teks Badge Hero
+            inject('lp_hb1_t', d.hero_badge1_text);
+            inject('lp_hb2_t', d.hero_badge2_text);
+            inject('lp_hb3_t', d.hero_badge3_text);
+
+            // Ikon Badge Hero (Ubah class)
+            if(document.getElementById('lp_hb1_i')) document.getElementById('lp_hb1_i').className = d.hero_badge1_icon;
+            if(document.getElementById('lp_hb2_i')) document.getElementById('lp_hb2_i').className = d.hero_badge2_icon;
+            if(document.getElementById('lp_hb3_i')) document.getElementById('lp_hb3_i').className = d.hero_badge3_icon;
+
+            // Ikon Trustbar (Ubah class)
+            if(document.getElementById('lp_tr1_i')) document.getElementById('lp_tr1_i').className = d.trust1_icon;
+            if(document.getElementById('lp_tr2_i')) document.getElementById('lp_tr2_i').className = d.trust2_icon;
+            if(document.getElementById('lp_tr3_i')) document.getElementById('lp_tr3_i').className = d.trust3_icon;
+            if(document.getElementById('lp_tr4_i')) document.getElementById('lp_tr4_i').className = d.trust4_icon;
+            if(document.getElementById('lp_tr5_i')) document.getElementById('lp_tr5_i').className = d.trust5_icon;
+          }
+    } catch (error) { console.error('Gagal memuat konten teks:', error); }
+}
+
+// Tambahkan panggilannya di event listener yang sudah ada:
 document.addEventListener('DOMContentLoaded', () => {
     loadProductsFromDB();
     loadTestimonialsFromDB();
-    loadGalleryFromDB(); 
+    loadGalleryFromDB();
+    loadContentFromDB();
+    renderWebContent();
 });
